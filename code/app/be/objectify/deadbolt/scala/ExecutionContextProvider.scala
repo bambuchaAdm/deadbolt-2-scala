@@ -17,7 +17,8 @@ package be.objectify.deadbolt.scala
 
 import javax.inject.{Inject, Provider, Singleton}
 
-import play.api.{Application, Logger}
+import play.api.Logger
+import play.api.inject.Injector
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
@@ -35,16 +36,16 @@ trait ExecutionContextProvider extends Provider[ExecutionContext]
  * nothing is specified.
  */
 @Singleton
-class DefaultExecutionContextProvider @Inject() (appProvider: Provider[Application]) extends ExecutionContextProvider {
+class DefaultExecutionContextProvider @Inject() (injector: Injector) extends ExecutionContextProvider {
 
   val logger: Logger = Logger("deadbolt.execution-context")
 
-  private val ecProvider: ExecutionContext = Try(appProvider.get().injector.instanceOf[DeadboltExecutionContextProvider]) match {
+  private val ecProvider: ExecutionContext = Try(injector.instanceOf[DeadboltExecutionContextProvider]) match {
     case Success(provider) =>
       logger.info("Custom execution context found")
       provider.get()
     case Failure(ex) =>
-      logger.info("No custom execution context found, falling back to scala.concurrent.ExecutionContext.global")
+      logger.warn("No custom execution context found, falling back to scala.concurrent.ExecutionContext.global", ex)
       scala.concurrent.ExecutionContext.global
   }
 
